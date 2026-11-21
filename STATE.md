@@ -49,6 +49,12 @@ Next steps (only after Nick's ruling arrives):
    8A/8B, 8C, 9, 10 per the concurrency map.
 
 Open decisions / blockers:
+- BOOK RULING (Nick, 2026-11-20, via Twin): in addition to the per-chunk
+  Neon write-ups, Neon assembles a concise Leanpub-style BOOK as the
+  project's canonical learning artifact - per-chunk write-ups become book
+  chapter drafts, Chunk 10 assembles the book, Pages presents the book.
+  Full ruling: /root/briefs/gateway-book-ruling-2026-11-20.md. Applies
+  at Phase 2 mission time, together with the plan sign-off.
 - Owner Nick: sign-off on PLAN.md, and the 16 open questions in its
   section 9 (module path, dependencies, bounded-load semantics,
   pipeline order tweak, arbitration seat, query/storage scope, padding
