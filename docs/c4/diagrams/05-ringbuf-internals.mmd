@@ -1,0 +1,7 @@
+%% draw-visual: -x 4 -y 1 -p 0
+graph TD
+  blocking[Blocking helpers] -->|wraps| spsc[SPSC ring]
+  blocking -->|wraps| mpmc[MPMC ring]
+  spsc -->|atomic| cursors[Padded cursors]
+  mpmc -->|CAS| cursors
+  cursors -->|size| pad[internal/pad]

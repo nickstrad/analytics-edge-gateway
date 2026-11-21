@@ -1,0 +1,11 @@
+%% draw-visual: -x 4 -y 1 -p 0
+graph TD
+  producer[Event producers] -->|events| parse[Line parse]
+  parse --> limit[GCRA limit: ratelimit]
+  limit -->|admitted| hotkey[Hot-key check: sketch]
+  limit -->|429| producer
+  hotkey --> route[Bounded-load route: router]
+  route --> ring[Per-shard ring: ringbuf]
+  ring --> forward[Batching forwarder: wire]
+  forward -->|TCP batches| engine[Analytics shard: engine]
+  engine -->|ack| route

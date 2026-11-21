@@ -1,0 +1,8 @@
+%% draw-visual: -x 4 -y 1 -p 0
+graph LR
+  producer[Event producers] -->|events| platform[Gateway + analytics platform]
+  consumer[Query consumers] -->|queries| platform
+  operator[Operators] -->|metrics/pprof| platform
+  sim[Sim harness: internal/sim] -->|seeded| platform
+  e2e[E2E suite: test/e2e] -->|processes| platform
+  e2e -->|generators| sim

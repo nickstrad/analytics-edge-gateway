@@ -1,0 +1,5 @@
+%% draw-visual: -x 4 -y 1 -p 0
+graph TD
+  coordinator[Gateway: query coordinator] -->|query| exec[Query execution]
+  exec -->|partials| merge[Coordinator merge]
+  merge -->|result| coordinator

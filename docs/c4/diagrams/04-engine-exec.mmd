@@ -1,0 +1,6 @@
+%% draw-visual: -x 4 -y 1 -p 0
+graph LR
+  exec[Query execution] -->|filter| index[Inverted index: index]
+  exec -->|read| columns[In-memory columns]
+  exec -->|GROUP BY| groupby[GROUP BY: hashmap]
+  exec -->|distinct| hll[Per-shard HLL: hll]

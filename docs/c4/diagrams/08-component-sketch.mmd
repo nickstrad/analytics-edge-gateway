@@ -1,0 +1,6 @@
+%% draw-visual: -x 4 -y 1 -p 0
+graph TD
+  caller[Pipeline: hot-key check] -->|Add/Estimate| countmin[CountMin: w x d counters]
+  caller -->|threshold| topk[TopK heavy hitters]
+  topk -->|estimates| countmin
+  countmin -->|hash| xhash[internal/xhash]

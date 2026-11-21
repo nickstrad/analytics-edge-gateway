@@ -1,0 +1,2763 @@
+{
+  "schemaVersion": 1,
+  "id": "analytics-edge-gateway",
+  "title": "analytics-edge-gateway — C4 model (TARGET architecture — designed 2026-11-21, awaiting Nick's buy-in)",
+  "revision": "target-2026-11-21",
+  "defaultDiagramId": "01-system-context",
+  "sources": [
+    {
+      "id": "plan",
+      "title": "PLAN.md — testing-first plan",
+      "url": "https://github.com/nickstrad/analytics-edge-gateway/blob/main/PLAN.md",
+      "path": "PLAN.md"
+    },
+    {
+      "id": "spec",
+      "title": "docs/project-source.md — project spec",
+      "url": "https://github.com/nickstrad/analytics-edge-gateway/blob/main/docs/project-source.md",
+      "path": "docs/project-source.md"
+    },
+    {
+      "id": "view-01-system-context",
+      "title": "01-system-context.md — Mermaid and Unicode renderings of this view",
+      "url": "01-system-context.md",
+      "path": "docs/c4/01-system-context.md"
+    },
+    {
+      "id": "view-02-container",
+      "title": "02-container.md — Mermaid and Unicode renderings of this view",
+      "url": "02-container.md",
+      "path": "docs/c4/02-container.md"
+    },
+    {
+      "id": "view-03-component-gateway-pipeline",
+      "title": "03-component-gateway-pipeline.md — Mermaid and Unicode renderings of this view",
+      "url": "03-component-gateway-pipeline.md",
+      "path": "docs/c4/03-component-gateway-pipeline.md"
+    },
+    {
+      "id": "view-04-component-analytics-engine",
+      "title": "04-component-analytics-engine.md — Mermaid and Unicode renderings of this view",
+      "url": "04-component-analytics-engine.md",
+      "path": "docs/c4/04-component-analytics-engine.md"
+    },
+    {
+      "id": "view-05-component-ringbuf",
+      "title": "05-component-ringbuf.md — Mermaid and Unicode renderings of this view",
+      "url": "05-component-ringbuf.md",
+      "path": "docs/c4/05-component-ringbuf.md"
+    },
+    {
+      "id": "view-06-component-ratelimit",
+      "title": "06-component-ratelimit.md — Mermaid and Unicode renderings of this view",
+      "url": "06-component-ratelimit.md",
+      "path": "docs/c4/06-component-ratelimit.md"
+    },
+    {
+      "id": "view-07-component-router",
+      "title": "07-component-router.md — Mermaid and Unicode renderings of this view",
+      "url": "07-component-router.md",
+      "path": "docs/c4/07-component-router.md"
+    },
+    {
+      "id": "view-08-component-sketch",
+      "title": "08-component-sketch.md — Mermaid and Unicode renderings of this view",
+      "url": "08-component-sketch.md",
+      "path": "docs/c4/08-component-sketch.md"
+    },
+    {
+      "id": "view-09-component-index",
+      "title": "09-component-index.md — Mermaid and Unicode renderings of this view",
+      "url": "09-component-index.md",
+      "path": "docs/c4/09-component-index.md"
+    },
+    {
+      "id": "view-10-component-hashmap",
+      "title": "10-component-hashmap.md — Mermaid and Unicode renderings of this view",
+      "url": "10-component-hashmap.md",
+      "path": "docs/c4/10-component-hashmap.md"
+    },
+    {
+      "id": "view-11-component-hll",
+      "title": "11-component-hll.md — Mermaid and Unicode renderings of this view",
+      "url": "11-component-hll.md",
+      "path": "docs/c4/11-component-hll.md"
+    }
+  ],
+  "documents": [],
+  "model": {
+    "elements": [
+      {
+        "id": "producer",
+        "kind": "person",
+        "name": "Event producers",
+        "description": "Tenant clients that send events to the gateway's HTTP ingest.",
+        "status": "planned",
+        "tags": [
+          "external"
+        ]
+      },
+      {
+        "id": "consumer",
+        "kind": "person",
+        "name": "Query consumers",
+        "description": "Clients that send structured HTTP/JSON queries.",
+        "status": "planned",
+        "tags": [
+          "external"
+        ]
+      },
+      {
+        "id": "operator",
+        "kind": "person",
+        "name": "Operators",
+        "description": "Read /metrics, /hotkeys and pprof on the debug address; start and stop the processes.",
+        "status": "planned",
+        "tags": [
+          "external"
+        ]
+      },
+      {
+        "id": "sim",
+        "kind": "softwareSystem",
+        "name": "Workload simulation harness (internal/sim)",
+        "description": "Seeded PRNG streams, virtual clock, event loop, traffic generators (Zipf, Burst/RetryStorm, HighCardinality, Mix), differential oracle runner with ddmin.",
+        "status": "planned",
+        "tags": [
+          "test"
+        ]
+      },
+      {
+        "id": "e2e",
+        "kind": "softwareSystem",
+        "name": "E2E suite (test/e2e)",
+        "description": "Builds and starts the real binaries (1 gateway + N shards), sends sim workloads over real sockets, compares against an in-test oracle.",
+        "status": "planned",
+        "tags": [
+          "test"
+        ]
+      },
+      {
+        "id": "platform",
+        "kind": "softwareSystem",
+        "name": "Analytics Edge Gateway platform",
+        "description": "Ingestion edge gateway plus sharded real-time OLAP engine, two processes, in-memory storage only.",
+        "status": "planned",
+        "tags": []
+      },
+      {
+        "id": "gateway",
+        "kind": "container",
+        "name": "cmd/gateway",
+        "description": "Ingestion edge proxy and rate-limiting router entrypoint; also hosts /query as the query coordinator (PLAN §9 Q6, recommended).",
+        "status": "planned",
+        "tags": [],
+        "parentId": "platform",
+        "technology": "Go process",
+        "containerType": "application"
+      },
+      {
+        "id": "analytics",
+        "kind": "container",
+        "name": "cmd/analytics (shard, ×N)",
+        "description": "Sharded OLAP query worker node entrypoint.",
+        "status": "planned",
+        "tags": [],
+        "parentId": "platform",
+        "technology": "Go process",
+        "containerType": "application"
+      },
+      {
+        "id": "pipeline",
+        "kind": "component",
+        "name": "internal/pipeline",
+        "description": "Sans-IO gateway core: parse → limit → hot-key → route → ring → forwarder.",
+        "status": "planned",
+        "tags": [
+          "package",
+          "external"
+        ],
+        "parentId": "gateway",
+        "technology": "Go package"
+      },
+      {
+        "id": "coordinator",
+        "kind": "component",
+        "name": "Query coordinator (/query)",
+        "description": "Fans a query out to shards and merges partial aggregates and HLL registers (merge code lives in internal/engine).",
+        "status": "planned",
+        "tags": [
+          "open-question-q6",
+          "external"
+        ],
+        "parentId": "gateway",
+        "technology": "Go, HTTP handler in cmd/gateway"
+      },
+      {
+        "id": "engine",
+        "kind": "component",
+        "name": "internal/engine",
+        "description": "Sans-IO shard engine: column store, index, GROUP BY, HLL, query execution, coordinator merge.",
+        "status": "planned",
+        "tags": [
+          "package",
+          "external"
+        ],
+        "parentId": "analytics",
+        "technology": "Go package"
+      },
+      {
+        "id": "wire",
+        "kind": "component",
+        "name": "internal/wire",
+        "description": "Gateway→shard binary frame format and query messages. Linked into both processes; modelled once, under cmd/gateway.",
+        "status": "planned",
+        "tags": [
+          "package"
+        ],
+        "parentId": "gateway",
+        "technology": "Go package"
+      },
+      {
+        "id": "xhash-gateway",
+        "kind": "component",
+        "name": "internal/xhash",
+        "description": "Deterministic, seedable 64-bit hashing (xxHash64 + integer mixer) shared by the primitives. One Go package linked into both processes; this element is the copy in cmd/gateway (the other is in cmd/analytics).",
+        "status": "planned",
+        "tags": [
+          "package"
+        ],
+        "parentId": "gateway",
+        "technology": "Go package"
+      },
+      {
+        "id": "xhash-analytics",
+        "kind": "component",
+        "name": "internal/xhash",
+        "description": "Deterministic, seedable 64-bit hashing (xxHash64 + integer mixer) shared by the primitives. One Go package linked into both processes; this element is the copy in cmd/analytics (the other is in cmd/gateway).",
+        "status": "planned",
+        "tags": [
+          "package"
+        ],
+        "parentId": "analytics",
+        "technology": "Go package"
+      },
+      {
+        "id": "pad",
+        "kind": "component",
+        "name": "internal/pad",
+        "description": "Cache-line size constant per architecture.",
+        "status": "planned",
+        "tags": [
+          "package"
+        ],
+        "parentId": "gateway",
+        "technology": "Go package"
+      },
+      {
+        "id": "pl-parse",
+        "kind": "component",
+        "name": "Line parse",
+        "description": "Zero-alloc parse of the compact ingest line format from pooled buffers.",
+        "status": "planned",
+        "tags": [],
+        "parentId": "gateway",
+        "technology": "Go, package internal/pipeline"
+      },
+      {
+        "id": "pl-limit",
+        "kind": "component",
+        "name": "Per-tenant GCRA limit",
+        "description": "Per-tenant rate limiting via internal/ratelimit (GCRA by default).",
+        "status": "planned",
+        "tags": [],
+        "parentId": "gateway",
+        "technology": "Go, package internal/pipeline"
+      },
+      {
+        "id": "pl-hotkey",
+        "kind": "component",
+        "name": "Hot-key check and isolation",
+        "description": "Count-Min hot-key check and isolation via internal/sketch.",
+        "status": "planned",
+        "tags": [],
+        "parentId": "gateway",
+        "technology": "Go, package internal/pipeline"
+      },
+      {
+        "id": "pl-route",
+        "kind": "component",
+        "name": "Bounded-load route",
+        "description": "Shard selection via internal/router; assign on route, release on shard acknowledgement.",
+        "status": "planned",
+        "tags": [],
+        "parentId": "gateway",
+        "technology": "Go, package internal/pipeline"
+      },
+      {
+        "id": "pl-ring",
+        "kind": "component",
+        "name": "Per-shard ring",
+        "description": "Lock-free hand-off via internal/ringbuf, one ring per shard.",
+        "status": "planned",
+        "tags": [],
+        "parentId": "gateway",
+        "technology": "Go, package internal/pipeline"
+      },
+      {
+        "id": "pl-forward",
+        "kind": "component",
+        "name": "Batching forwarder",
+        "description": "Sends length-prefixed binary batches to shards; the only place retry (re-dial with capped backoff) is allowed.",
+        "status": "planned",
+        "tags": [],
+        "parentId": "gateway",
+        "technology": "Go, package internal/pipeline"
+      },
+      {
+        "id": "en-columns",
+        "kind": "component",
+        "name": "Append-only in-memory columns",
+        "description": "Column store for ingested events.",
+        "status": "planned",
+        "tags": [],
+        "parentId": "analytics",
+        "technology": "Go, package internal/engine"
+      },
+      {
+        "id": "en-index",
+        "kind": "component",
+        "name": "Inverted index over tags",
+        "description": "internal/index: term → Roaring posting bitmap.",
+        "status": "planned",
+        "tags": [],
+        "parentId": "analytics",
+        "technology": "Go, package internal/engine"
+      },
+      {
+        "id": "en-groupby",
+        "kind": "component",
+        "name": "SwissTable GROUP BY",
+        "description": "internal/hashmap aggregation with COUNT/SUM/MIN/MAX.",
+        "status": "planned",
+        "tags": [],
+        "parentId": "analytics",
+        "technology": "Go, package internal/engine"
+      },
+      {
+        "id": "en-hll",
+        "kind": "component",
+        "name": "Per-shard HLL",
+        "description": "internal/hll sketch for APPROX_COUNT_DISTINCT.",
+        "status": "planned",
+        "tags": [],
+        "parentId": "analytics",
+        "technology": "Go, package internal/engine"
+      },
+      {
+        "id": "en-exec",
+        "kind": "component",
+        "name": "Query execution",
+        "description": "Filter tree over tags, optional group-by, aggregates.",
+        "status": "planned",
+        "tags": [],
+        "parentId": "analytics",
+        "technology": "Go, package internal/engine"
+      },
+      {
+        "id": "en-merge",
+        "kind": "component",
+        "name": "Coordinator merge",
+        "description": "Merges partial aggregates and HLL registers (element-wise max) across shards. Code in internal/engine; runs in the gateway's query coordinator.",
+        "status": "planned",
+        "tags": [
+          "external"
+        ],
+        "parentId": "gateway",
+        "technology": "Go, package internal/engine"
+      },
+      {
+        "id": "ringbuf",
+        "kind": "component",
+        "name": "internal/ringbuf",
+        "description": "Lock-free SPSC and MPMC ring buffers with cache-line padding.",
+        "status": "planned",
+        "tags": [
+          "package"
+        ],
+        "parentId": "gateway",
+        "technology": "Go package"
+      },
+      {
+        "id": "rb-callers",
+        "kind": "component",
+        "name": "Producer and consumer goroutines (the caller's)",
+        "description": "The ring buffer is passive: producers and consumers are the caller's goroutines (drawn as two boxes on the diagram).",
+        "status": "planned",
+        "tags": [],
+        "parentId": "gateway",
+        "technology": "Go goroutines"
+      },
+      {
+        "id": "rb-spsc",
+        "kind": "component",
+        "name": "SPSC[T]",
+        "description": "Lamport ring; each side caches the other side's cursor.",
+        "status": "planned",
+        "tags": [],
+        "parentId": "gateway",
+        "technology": "Go, package internal/ringbuf"
+      },
+      {
+        "id": "rb-mpmc",
+        "kind": "component",
+        "name": "MPMC[T]",
+        "description": "Vyukov-style bounded queue with per-slot sequence numbers; CAS on the cursor.",
+        "status": "planned",
+        "tags": [],
+        "parentId": "gateway",
+        "technology": "Go, package internal/ringbuf"
+      },
+      {
+        "id": "rb-cursors",
+        "kind": "component",
+        "name": "Padded cursors",
+        "description": "atomic.Uint64 sequence counters separated by cache-line pads (internal/pad).",
+        "status": "planned",
+        "tags": [],
+        "parentId": "gateway",
+        "technology": "Go, package internal/ringbuf"
+      },
+      {
+        "id": "rb-blocking",
+        "kind": "component",
+        "name": "Blocking helpers",
+        "description": "Bounded spin → runtime.Gosched → park on a notification channel.",
+        "status": "planned",
+        "tags": [],
+        "parentId": "gateway",
+        "technology": "Go, package internal/ringbuf"
+      },
+      {
+        "id": "ratelimit",
+        "kind": "component",
+        "name": "internal/ratelimit",
+        "description": "Token Bucket and GCRA limiters, per-tenant state table.",
+        "status": "planned",
+        "tags": [
+          "package"
+        ],
+        "parentId": "gateway",
+        "technology": "Go package"
+      },
+      {
+        "id": "rl-table",
+        "kind": "component",
+        "name": "Per-tenant limiter table",
+        "description": "Tenant → limiter state, with idle eviction.",
+        "status": "planned",
+        "tags": [],
+        "parentId": "gateway",
+        "technology": "Go, package internal/ratelimit"
+      },
+      {
+        "id": "rl-gcra",
+        "kind": "component",
+        "name": "GCRA",
+        "description": "One int64 TAT per tenant, updated with a single CAS; integer arithmetic.",
+        "status": "planned",
+        "tags": [],
+        "parentId": "gateway",
+        "technology": "Go, package internal/ratelimit"
+      },
+      {
+        "id": "rl-tb",
+        "kind": "component",
+        "name": "TokenBucket",
+        "description": "(tokens, last) per tenant; integer arithmetic; decision-equivalent to GCRA.",
+        "status": "planned",
+        "tags": [],
+        "parentId": "gateway",
+        "technology": "Go, package internal/ratelimit"
+      },
+      {
+        "id": "router",
+        "kind": "component",
+        "name": "internal/router",
+        "description": "Consistent-hash ring with virtual nodes and bounded loads.",
+        "status": "planned",
+        "tags": [
+          "package"
+        ],
+        "parentId": "gateway",
+        "technology": "Go package"
+      },
+      {
+        "id": "rt-ring",
+        "kind": "component",
+        "name": "Ring",
+        "description": "Lookup, Assign, Release; membership add/remove.",
+        "status": "planned",
+        "tags": [],
+        "parentId": "gateway",
+        "technology": "Go, package internal/router"
+      },
+      {
+        "id": "rt-snapshot",
+        "kind": "component",
+        "name": "Immutable snapshot",
+        "description": "Sorted vnode points + parallel shard-index slice, binary search; swapped via atomic.Pointer on membership change.",
+        "status": "planned",
+        "tags": [],
+        "parentId": "gateway",
+        "technology": "Go, package internal/router"
+      },
+      {
+        "id": "rt-load",
+        "kind": "component",
+        "name": "Per-shard load counters",
+        "description": "Bounded-load cap ⌈(1+ε)·(total+1)/n⌉; walk clockwise to the first shard under the cap.",
+        "status": "planned",
+        "tags": [
+          "open-question-q3"
+        ],
+        "parentId": "gateway",
+        "technology": "Go, package internal/router"
+      },
+      {
+        "id": "sketch",
+        "kind": "component",
+        "name": "internal/sketch",
+        "description": "Count-Min Sketch and top-K hot-key detector.",
+        "status": "planned",
+        "tags": [
+          "package"
+        ],
+        "parentId": "gateway",
+        "technology": "Go package"
+      },
+      {
+        "id": "sk-countmin",
+        "kind": "component",
+        "name": "CountMin",
+        "description": "w×d uint32 saturating counters, double hashing; merge; windowed decay.",
+        "status": "planned",
+        "tags": [],
+        "parentId": "gateway",
+        "technology": "Go, package internal/sketch"
+      },
+      {
+        "id": "sk-topk",
+        "kind": "component",
+        "name": "TopK",
+        "description": "Heavy-hitter tracker (size-K min-heap with a small index) with a threshold query.",
+        "status": "planned",
+        "tags": [],
+        "parentId": "gateway",
+        "technology": "Go, package internal/sketch"
+      },
+      {
+        "id": "index",
+        "kind": "component",
+        "name": "internal/index",
+        "description": "Roaring bitmap containers and the inverted index.",
+        "status": "planned",
+        "tags": [
+          "package"
+        ],
+        "parentId": "analytics",
+        "technology": "Go package"
+      },
+      {
+        "id": "ix-inverted",
+        "kind": "component",
+        "name": "Inverted",
+        "description": "Term → posting bitmap; boolean query evaluation (AND/OR/NOT).",
+        "status": "planned",
+        "tags": [],
+        "parentId": "analytics",
+        "technology": "Go, package internal/index"
+      },
+      {
+        "id": "ix-bitmap",
+        "kind": "component",
+        "name": "Bitmap",
+        "description": "High 16 bits select a container (sorted keys, binary search); Add/Remove/Contains/And/Or/AndNot.",
+        "status": "planned",
+        "tags": [],
+        "parentId": "analytics",
+        "technology": "Go, package internal/index"
+      },
+      {
+        "id": "ix-array",
+        "kind": "component",
+        "name": "Array container",
+        "description": "Sorted []uint16, up to and including 4,096 elements.",
+        "status": "planned",
+        "tags": [],
+        "parentId": "analytics",
+        "technology": "Go, package internal/index"
+      },
+      {
+        "id": "ix-bitset",
+        "kind": "component",
+        "name": "Bitset container",
+        "description": "[1024]uint64 (8 KiB), from 4,097 elements.",
+        "status": "planned",
+        "tags": [],
+        "parentId": "analytics",
+        "technology": "Go, package internal/index"
+      },
+      {
+        "id": "hashmap",
+        "kind": "component",
+        "name": "internal/hashmap",
+        "description": "SwissTable-style open-addressed hash map.",
+        "status": "planned",
+        "tags": [
+          "package"
+        ],
+        "parentId": "analytics",
+        "technology": "Go package"
+      },
+      {
+        "id": "hm-map",
+        "kind": "component",
+        "name": "Map[K, V]",
+        "description": "Put/Get/Delete; triangular group probing; tombstones with in-place rehash; doubling resize.",
+        "status": "planned",
+        "tags": [],
+        "parentId": "analytics",
+        "technology": "Go, package internal/hashmap"
+      },
+      {
+        "id": "hm-hasher",
+        "kind": "component",
+        "name": "Explicit hasher",
+        "description": "Constructor argument with a per-table seed; H1 selects the group, 7-bit H2 is the control byte.",
+        "status": "planned",
+        "tags": [],
+        "parentId": "analytics",
+        "technology": "Go, package internal/hashmap"
+      },
+      {
+        "id": "hm-ctrl",
+        "kind": "component",
+        "name": "Control bytes",
+        "description": "Flat array, 16-slot groups: empty 0x80, deleted 0xFE, full = H2.",
+        "status": "planned",
+        "tags": [],
+        "parentId": "analytics",
+        "technology": "Go, package internal/hashmap"
+      },
+      {
+        "id": "hm-slots",
+        "kind": "component",
+        "name": "Slot array",
+        "description": "Flat contiguous key/value slots.",
+        "status": "planned",
+        "tags": [],
+        "parentId": "analytics",
+        "technology": "Go, package internal/hashmap"
+      },
+      {
+        "id": "hm-swar",
+        "kind": "component",
+        "name": "SWAR group match",
+        "description": "H2 and empty matching over two uint64 words per group.",
+        "status": "planned",
+        "tags": [],
+        "parentId": "analytics",
+        "technology": "Go, package internal/hashmap"
+      },
+      {
+        "id": "hm-harness",
+        "kind": "component",
+        "name": "GROUP BY aggregation harness",
+        "description": "Aggregation harness used by the benchmarks.",
+        "status": "planned",
+        "tags": [],
+        "parentId": "analytics",
+        "technology": "Go, package internal/hashmap"
+      },
+      {
+        "id": "hll",
+        "kind": "component",
+        "name": "internal/hll",
+        "description": "HyperLogLog (p=14) with register merge.",
+        "status": "planned",
+        "tags": [
+          "package"
+        ],
+        "parentId": "analytics",
+        "technology": "Go package"
+      },
+      {
+        "id": "hl-sketch",
+        "kind": "component",
+        "name": "Sketch",
+        "description": "16,384 one-byte registers; Add; Merge (element-wise max); mismatched precision/seed refused with *hll.MismatchError.",
+        "status": "planned",
+        "tags": [],
+        "parentId": "analytics",
+        "technology": "Go, package internal/hll"
+      },
+      {
+        "id": "hl-estimate",
+        "kind": "component",
+        "name": "Estimate",
+        "description": "Small/large-range corrected estimator (Ertl improved recommended as primary, PLAN §9 Q11); classic estimator kept for comparison.",
+        "status": "planned",
+        "tags": [
+          "open-question-q11"
+        ],
+        "parentId": "analytics",
+        "technology": "Go, package internal/hll"
+      },
+      {
+        "id": "hl-codec",
+        "kind": "component",
+        "name": "Register encode/decode",
+        "description": "Binary encode/decode of registers.",
+        "status": "planned",
+        "tags": [],
+        "parentId": "analytics",
+        "technology": "Go, package internal/hll"
+      }
+    ],
+    "relationships": [
+      {
+        "id": "r-producer-platform",
+        "sourceId": "producer",
+        "targetId": "platform",
+        "label": "Sends events",
+        "status": "planned",
+        "technology": "HTTP ingest, compact line format (PLAN §7.13, recommended)"
+      },
+      {
+        "id": "r-consumer-platform",
+        "sourceId": "consumer",
+        "targetId": "platform",
+        "label": "Sends queries",
+        "status": "planned",
+        "technology": "HTTP/JSON (PLAN §7.13, recommended)"
+      },
+      {
+        "id": "r-operator-platform",
+        "sourceId": "operator",
+        "targetId": "platform",
+        "label": "Reads /metrics, /hotkeys, pprof",
+        "status": "planned",
+        "technology": "HTTP; pprof on -debug-addr"
+      },
+      {
+        "id": "r-sim-platform",
+        "sourceId": "sim",
+        "targetId": "platform",
+        "label": "Drives seeded traffic in-process on the virtual clock (DST)",
+        "status": "planned",
+        "technology": "Go test"
+      },
+      {
+        "id": "r-e2e-platform",
+        "sourceId": "e2e",
+        "targetId": "platform",
+        "label": "Starts real processes, sends workloads, checks answers against an oracle",
+        "status": "planned",
+        "technology": "real sockets"
+      },
+      {
+        "id": "r-e2e-sim",
+        "sourceId": "e2e",
+        "targetId": "sim",
+        "label": "Uses generators with a pinned seed",
+        "status": "planned",
+        "technology": "Go package import"
+      },
+      {
+        "id": "r-producer-pipeline",
+        "sourceId": "producer",
+        "targetId": "pipeline",
+        "label": "Sends events; gets 400 / 429 + Retry-After / 503",
+        "status": "planned",
+        "technology": "HTTP ingest"
+      },
+      {
+        "id": "r-consumer-coordinator",
+        "sourceId": "consumer",
+        "targetId": "coordinator",
+        "label": "Sends queries",
+        "status": "planned",
+        "technology": "HTTP/JSON"
+      },
+      {
+        "id": "r-pipeline-engine",
+        "sourceId": "pipeline",
+        "targetId": "engine",
+        "label": "Forwards event batches; shard acknowledges",
+        "status": "planned",
+        "technology": "length-prefixed binary batches over TCP (internal/wire)"
+      },
+      {
+        "id": "r-coordinator-engine",
+        "sourceId": "coordinator",
+        "targetId": "engine",
+        "label": "Fans out queries; receives partial aggregates and HLL registers",
+        "status": "planned",
+        "technology": "query messages (internal/wire)"
+      },
+      {
+        "id": "r-operator-gateway",
+        "sourceId": "operator",
+        "targetId": "gateway",
+        "label": "Reads /metrics, /hotkeys, pprof",
+        "status": "planned",
+        "technology": "HTTP; -debug-addr"
+      },
+      {
+        "id": "r-operator-analytics",
+        "sourceId": "operator",
+        "targetId": "analytics",
+        "label": "Reads /metrics, pprof",
+        "status": "planned",
+        "technology": "HTTP; -debug-addr"
+      },
+      {
+        "id": "r-parse-limit",
+        "sourceId": "pl-parse",
+        "targetId": "pl-limit",
+        "label": "event",
+        "status": "planned",
+        "technology": "Go call (in-process)"
+      },
+      {
+        "id": "r-limit-hotkey",
+        "sourceId": "pl-limit",
+        "targetId": "pl-hotkey",
+        "label": "admitted",
+        "status": "planned",
+        "technology": "Go call (in-process)"
+      },
+      {
+        "id": "r-hotkey-route",
+        "sourceId": "pl-hotkey",
+        "targetId": "pl-route",
+        "label": "not isolated",
+        "status": "planned",
+        "technology": "Go call (in-process)"
+      },
+      {
+        "id": "r-route-ring",
+        "sourceId": "pl-route",
+        "targetId": "pl-ring",
+        "label": "assigned shard",
+        "status": "planned",
+        "technology": "Go call (in-process)"
+      },
+      {
+        "id": "r-ring-forward",
+        "sourceId": "pl-ring",
+        "targetId": "pl-forward",
+        "label": "dequeue batch",
+        "status": "planned",
+        "technology": "Go call (in-process)"
+      },
+      {
+        "id": "r-forward-engine",
+        "sourceId": "pl-forward",
+        "targetId": "engine",
+        "label": "wire batches",
+        "status": "planned",
+        "technology": "TCP"
+      },
+      {
+        "id": "r-engine-route",
+        "sourceId": "engine",
+        "targetId": "pl-route",
+        "label": "acknowledgement → Release",
+        "status": "planned",
+        "technology": "TCP acknowledgement (internal/wire)"
+      },
+      {
+        "id": "r-limit-ratelimit",
+        "sourceId": "pl-limit",
+        "targetId": "ratelimit",
+        "label": "uses",
+        "status": "planned",
+        "technology": "Go call (in-process)"
+      },
+      {
+        "id": "r-hotkey-sketch",
+        "sourceId": "pl-hotkey",
+        "targetId": "sketch",
+        "label": "uses",
+        "status": "planned",
+        "technology": "Go call (in-process)"
+      },
+      {
+        "id": "r-route-router",
+        "sourceId": "pl-route",
+        "targetId": "router",
+        "label": "uses",
+        "status": "planned",
+        "technology": "Go call (in-process)"
+      },
+      {
+        "id": "r-ring-ringbuf",
+        "sourceId": "pl-ring",
+        "targetId": "ringbuf",
+        "label": "uses",
+        "status": "planned",
+        "technology": "Go call (in-process)"
+      },
+      {
+        "id": "r-forward-wire",
+        "sourceId": "pl-forward",
+        "targetId": "wire",
+        "label": "uses",
+        "status": "planned",
+        "technology": "Go call (in-process)"
+      },
+      {
+        "id": "r-pipeline-columns",
+        "sourceId": "pipeline",
+        "targetId": "en-columns",
+        "label": "append events",
+        "status": "planned",
+        "technology": "length-prefixed binary batches over TCP (internal/wire)"
+      },
+      {
+        "id": "r-pipeline-enindex",
+        "sourceId": "pipeline",
+        "targetId": "en-index",
+        "label": "index tags",
+        "status": "planned",
+        "technology": "length-prefixed binary batches over TCP (internal/wire)"
+      },
+      {
+        "id": "r-coordinator-exec",
+        "sourceId": "coordinator",
+        "targetId": "en-exec",
+        "label": "query",
+        "status": "planned",
+        "technology": "query messages (internal/wire)"
+      },
+      {
+        "id": "r-exec-index",
+        "sourceId": "en-exec",
+        "targetId": "en-index",
+        "label": "filter",
+        "status": "planned",
+        "technology": "Go call (in-process)"
+      },
+      {
+        "id": "r-exec-columns",
+        "sourceId": "en-exec",
+        "targetId": "en-columns",
+        "label": "read",
+        "status": "planned",
+        "technology": "Go call (in-process)"
+      },
+      {
+        "id": "r-exec-groupby",
+        "sourceId": "en-exec",
+        "targetId": "en-groupby",
+        "label": "GROUP BY",
+        "status": "planned",
+        "technology": "Go call (in-process)"
+      },
+      {
+        "id": "r-exec-hll",
+        "sourceId": "en-exec",
+        "targetId": "en-hll",
+        "label": "APPROX_COUNT_DISTINCT",
+        "status": "planned",
+        "technology": "Go call (in-process)"
+      },
+      {
+        "id": "r-exec-merge",
+        "sourceId": "en-exec",
+        "targetId": "en-merge",
+        "label": "partial aggregates, registers",
+        "status": "planned",
+        "technology": "query messages (internal/wire)"
+      },
+      {
+        "id": "r-enindex-index",
+        "sourceId": "en-index",
+        "targetId": "index",
+        "label": "uses",
+        "status": "planned",
+        "technology": "Go call (in-process)"
+      },
+      {
+        "id": "r-groupby-hashmap",
+        "sourceId": "en-groupby",
+        "targetId": "hashmap",
+        "label": "uses",
+        "status": "planned",
+        "technology": "Go call (in-process)"
+      },
+      {
+        "id": "r-enhll-hll",
+        "sourceId": "en-hll",
+        "targetId": "hll",
+        "label": "uses",
+        "status": "planned",
+        "technology": "Go call (in-process)"
+      },
+      {
+        "id": "r-spsc-cursors",
+        "sourceId": "rb-spsc",
+        "targetId": "rb-cursors",
+        "label": "atomic load/store",
+        "status": "planned",
+        "technology": "Go call (in-process)"
+      },
+      {
+        "id": "r-mpmc-cursors",
+        "sourceId": "rb-mpmc",
+        "targetId": "rb-cursors",
+        "label": "CAS",
+        "status": "planned",
+        "technology": "Go call (in-process)"
+      },
+      {
+        "id": "r-blocking-spsc",
+        "sourceId": "rb-blocking",
+        "targetId": "rb-spsc",
+        "label": "wraps Try ops",
+        "status": "planned",
+        "technology": "Go call (in-process)"
+      },
+      {
+        "id": "r-blocking-mpmc",
+        "sourceId": "rb-blocking",
+        "targetId": "rb-mpmc",
+        "label": "wraps Try ops",
+        "status": "planned",
+        "technology": "Go call (in-process)"
+      },
+      {
+        "id": "r-cursors-pad",
+        "sourceId": "rb-cursors",
+        "targetId": "pad",
+        "label": "pad size",
+        "status": "planned",
+        "technology": "Go call (in-process)"
+      },
+      {
+        "id": "r-table-gcra",
+        "sourceId": "rl-table",
+        "targetId": "rl-gcra",
+        "label": "Allow(now, n) — gateway default",
+        "status": "planned",
+        "technology": "Go call (in-process)"
+      },
+      {
+        "id": "r-table-tb",
+        "sourceId": "rl-table",
+        "targetId": "rl-tb",
+        "label": "Allow(now, n)",
+        "status": "planned",
+        "technology": "Go call (in-process)"
+      },
+      {
+        "id": "r-ring-snapshot",
+        "sourceId": "rt-ring",
+        "targetId": "rt-snapshot",
+        "label": "lookup; swap on membership change",
+        "status": "planned",
+        "technology": "Go call (in-process)"
+      },
+      {
+        "id": "r-ring-load",
+        "sourceId": "rt-ring",
+        "targetId": "rt-load",
+        "label": "Assign / Release",
+        "status": "planned",
+        "technology": "Go call (in-process)"
+      },
+      {
+        "id": "r-snapshot-xhash",
+        "sourceId": "rt-snapshot",
+        "targetId": "xhash-gateway",
+        "label": "vnode points, key hash",
+        "status": "planned",
+        "technology": "Go call (in-process)"
+      },
+      {
+        "id": "r-topk-countmin",
+        "sourceId": "sk-topk",
+        "targetId": "sk-countmin",
+        "label": "estimates",
+        "status": "planned",
+        "technology": "Go call (in-process)"
+      },
+      {
+        "id": "r-countmin-xhash",
+        "sourceId": "sk-countmin",
+        "targetId": "xhash-gateway",
+        "label": "one 64-bit hash per key",
+        "status": "planned",
+        "technology": "Go call (in-process)"
+      },
+      {
+        "id": "r-inverted-bitmap",
+        "sourceId": "ix-inverted",
+        "targetId": "ix-bitmap",
+        "label": "posting bitmap per term",
+        "status": "planned",
+        "technology": "Go call (in-process)"
+      },
+      {
+        "id": "r-bitmap-array",
+        "sourceId": "ix-bitmap",
+        "targetId": "ix-array",
+        "label": "sparse chunk",
+        "status": "planned",
+        "technology": "Go call (in-process)"
+      },
+      {
+        "id": "r-bitmap-bitset",
+        "sourceId": "ix-bitmap",
+        "targetId": "ix-bitset",
+        "label": "dense chunk",
+        "status": "planned",
+        "technology": "Go call (in-process)"
+      },
+      {
+        "id": "r-array-bitset",
+        "sourceId": "ix-array",
+        "targetId": "ix-bitset",
+        "label": "promote at 4,097 / demote at 4,096",
+        "status": "planned",
+        "technology": "Go call (in-process)"
+      },
+      {
+        "id": "r-harness-map",
+        "sourceId": "hm-harness",
+        "targetId": "hm-map",
+        "label": "aggregates into",
+        "status": "planned",
+        "technology": "Go call (in-process)"
+      },
+      {
+        "id": "r-map-hasher",
+        "sourceId": "hm-map",
+        "targetId": "hm-hasher",
+        "label": "H1, H2",
+        "status": "planned",
+        "technology": "Go call (in-process)"
+      },
+      {
+        "id": "r-map-swar",
+        "sourceId": "hm-map",
+        "targetId": "hm-swar",
+        "label": "probe group",
+        "status": "planned",
+        "technology": "Go call (in-process)"
+      },
+      {
+        "id": "r-swar-ctrl",
+        "sourceId": "hm-swar",
+        "targetId": "hm-ctrl",
+        "label": "match H2 / empty",
+        "status": "planned",
+        "technology": "Go call (in-process)"
+      },
+      {
+        "id": "r-map-slots",
+        "sourceId": "hm-map",
+        "targetId": "hm-slots",
+        "label": "compare key, read/write value",
+        "status": "planned",
+        "technology": "Go call (in-process)"
+      },
+      {
+        "id": "r-enhll-sketch",
+        "sourceId": "en-hll",
+        "targetId": "hl-sketch",
+        "label": "Add",
+        "status": "planned",
+        "technology": "Go call (in-process)"
+      },
+      {
+        "id": "r-merge-sketch",
+        "sourceId": "en-merge",
+        "targetId": "hl-sketch",
+        "label": "Merge",
+        "status": "planned",
+        "technology": "Go call (internal/hll linked into cmd/gateway)"
+      },
+      {
+        "id": "r-sketch-estimate",
+        "sourceId": "hl-sketch",
+        "targetId": "hl-estimate",
+        "label": "registers",
+        "status": "planned",
+        "technology": "Go call (in-process)"
+      },
+      {
+        "id": "r-sketch-codec",
+        "sourceId": "hl-sketch",
+        "targetId": "hl-codec",
+        "label": "registers",
+        "status": "planned",
+        "technology": "Go call (in-process)"
+      },
+      {
+        "id": "r-sketch-xhash",
+        "sourceId": "hl-sketch",
+        "targetId": "xhash-analytics",
+        "label": "64-bit hash: 14-bit index, rank",
+        "status": "planned",
+        "technology": "Go call (in-process)"
+      },
+      {
+        "id": "r-producer-parse",
+        "sourceId": "producer",
+        "targetId": "pl-parse",
+        "label": "events",
+        "status": "planned",
+        "technology": "HTTP ingest"
+      },
+      {
+        "id": "r-limit-producer",
+        "sourceId": "pl-limit",
+        "targetId": "producer",
+        "label": "rejected: 429 + Retry-After",
+        "status": "planned",
+        "technology": "HTTP response"
+      },
+      {
+        "id": "r-merge-coordinator",
+        "sourceId": "en-merge",
+        "targetId": "coordinator",
+        "label": "merged result",
+        "status": "planned",
+        "technology": "Go call (in-process)"
+      },
+      {
+        "id": "r-pllimit-table",
+        "sourceId": "pl-limit",
+        "targetId": "rl-table",
+        "label": "Allow(now, n) → (ok, retryAfterNs)",
+        "status": "planned",
+        "technology": "Go call (in-process)"
+      },
+      {
+        "id": "r-plroute-ring",
+        "sourceId": "pl-route",
+        "targetId": "rt-ring",
+        "label": "Assign(key) / Release",
+        "status": "planned",
+        "technology": "Go call (in-process)"
+      },
+      {
+        "id": "r-plhotkey-countmin",
+        "sourceId": "pl-hotkey",
+        "targetId": "sk-countmin",
+        "label": "Add / Estimate",
+        "status": "planned",
+        "technology": "Go call (in-process)"
+      },
+      {
+        "id": "r-plhotkey-topk",
+        "sourceId": "pl-hotkey",
+        "targetId": "sk-topk",
+        "label": "threshold query",
+        "status": "planned",
+        "technology": "Go call (in-process)"
+      },
+      {
+        "id": "r-enindex-inverted",
+        "sourceId": "en-index",
+        "targetId": "ix-inverted",
+        "label": "index tags, query",
+        "status": "planned",
+        "technology": "Go call (in-process)"
+      },
+      {
+        "id": "r-groupby-map",
+        "sourceId": "en-groupby",
+        "targetId": "hm-map",
+        "label": "Put / Get",
+        "status": "planned",
+        "technology": "Go call (in-process)"
+      },
+      {
+        "id": "r-callers-spsc",
+        "sourceId": "rb-callers",
+        "targetId": "rb-spsc",
+        "label": "TryEnqueue / TryDequeue, single and batch",
+        "status": "planned",
+        "technology": "Go call (in-process)"
+      },
+      {
+        "id": "r-callers-mpmc",
+        "sourceId": "rb-callers",
+        "targetId": "rb-mpmc",
+        "label": "TryEnqueue / TryDequeue, single and batch",
+        "status": "planned",
+        "technology": "Go call (in-process)"
+      },
+      {
+        "id": "r-producer-gateway",
+        "sourceId": "producer",
+        "targetId": "gateway",
+        "label": "Sends events; gets 400 / 429 + Retry-After / 503",
+        "status": "planned",
+        "technology": "HTTP ingest"
+      },
+      {
+        "id": "r-consumer-gateway",
+        "sourceId": "consumer",
+        "targetId": "gateway",
+        "label": "Sends queries",
+        "status": "planned",
+        "technology": "HTTP/JSON"
+      },
+      {
+        "id": "r-gateway-analytics-ingest",
+        "sourceId": "gateway",
+        "targetId": "analytics",
+        "label": "Forwards event batches; shard acknowledges",
+        "status": "planned",
+        "technology": "length-prefixed binary batches over TCP (internal/wire)"
+      },
+      {
+        "id": "r-gateway-analytics-query",
+        "sourceId": "gateway",
+        "targetId": "analytics",
+        "label": "Fans out queries; receives partial aggregates and HLL registers",
+        "status": "planned",
+        "technology": "query messages (internal/wire)"
+      }
+    ]
+  },
+  "diagrams": [
+    {
+      "id": "01-system-context",
+      "kind": "context",
+      "title": "C4 Level 1 — System Context",
+      "status": "planned",
+      "scopeId": "platform",
+      "nodes": [
+        {
+          "elementId": "producer"
+        },
+        {
+          "elementId": "consumer"
+        },
+        {
+          "elementId": "operator"
+        },
+        {
+          "elementId": "platform",
+          "detail": {
+            "diagramId": "02-container"
+          }
+        },
+        {
+          "elementId": "sim"
+        },
+        {
+          "elementId": "e2e"
+        }
+      ],
+      "edges": [
+        {
+          "relationshipId": "r-producer-platform",
+          "displayNumber": 1
+        },
+        {
+          "relationshipId": "r-consumer-platform",
+          "displayNumber": 2
+        },
+        {
+          "relationshipId": "r-operator-platform",
+          "displayNumber": 3
+        },
+        {
+          "relationshipId": "r-sim-platform",
+          "displayNumber": 4
+        },
+        {
+          "relationshipId": "r-e2e-platform",
+          "displayNumber": 5
+        },
+        {
+          "relationshipId": "r-e2e-sim",
+          "displayNumber": 6
+        }
+      ],
+      "legend": {
+        "title": "Diagram key",
+        "entries": [
+          {
+            "id": "scope",
+            "label": "System in focus",
+            "description": "The platform these diagrams describe.",
+            "swatch": {
+              "shape": "box",
+              "tone": "accent",
+              "stroke": "dashed"
+            }
+          },
+          {
+            "id": "person",
+            "label": "Person",
+            "description": "A user or operator of the platform.",
+            "swatch": {
+              "shape": "person",
+              "tone": "default",
+              "stroke": "dashed"
+            }
+          },
+          {
+            "id": "box",
+            "label": "Software system",
+            "description": "A software system, including the two test systems.",
+            "swatch": {
+              "shape": "box",
+              "tone": "default",
+              "stroke": "dashed"
+            }
+          },
+          {
+            "id": "uses",
+            "label": "Relationship",
+            "description": "Arrow points from the caller or sender to the callee or receiver.",
+            "swatch": {
+              "shape": "line",
+              "tone": "default",
+              "stroke": "dashed",
+              "arrow": "forward"
+            }
+          },
+          {
+            "id": "planned",
+            "label": "Planned",
+            "description": "Dashed means planned: this is the target architecture and nothing here is built yet.",
+            "swatch": {
+              "shape": "box",
+              "tone": "muted",
+              "stroke": "dashed"
+            }
+          }
+        ]
+      },
+      "layout": {
+        "mode": "auto",
+        "direction": "TB"
+      },
+      "sourceIds": [
+        "plan",
+        "view-01-system-context"
+      ]
+    },
+    {
+      "id": "02-container",
+      "kind": "container",
+      "title": "C4 Level 2 — Container",
+      "status": "planned",
+      "scopeId": "platform",
+      "parent": {
+        "diagramId": "01-system-context",
+        "elementId": "platform"
+      },
+      "nodes": [
+        {
+          "elementId": "producer"
+        },
+        {
+          "elementId": "consumer"
+        },
+        {
+          "elementId": "operator"
+        },
+        {
+          "elementId": "gateway",
+          "detail": {
+            "diagramId": "03-component-gateway-pipeline"
+          }
+        },
+        {
+          "elementId": "analytics",
+          "detail": {
+            "diagramId": "04-component-analytics-engine"
+          }
+        }
+      ],
+      "edges": [
+        {
+          "relationshipId": "r-producer-gateway",
+          "displayNumber": 1
+        },
+        {
+          "relationshipId": "r-consumer-gateway",
+          "displayNumber": 2
+        },
+        {
+          "relationshipId": "r-gateway-analytics-ingest",
+          "displayNumber": 3
+        },
+        {
+          "relationshipId": "r-gateway-analytics-query",
+          "displayNumber": 4
+        },
+        {
+          "relationshipId": "r-operator-gateway",
+          "displayNumber": 5
+        },
+        {
+          "relationshipId": "r-operator-analytics",
+          "displayNumber": 6
+        }
+      ],
+      "legend": {
+        "title": "Diagram key",
+        "entries": [
+          {
+            "id": "person",
+            "label": "Person",
+            "description": "A user or operator of the platform.",
+            "swatch": {
+              "shape": "person",
+              "tone": "default",
+              "stroke": "dashed"
+            }
+          },
+          {
+            "id": "box",
+            "label": "Container",
+            "description": "A separately running Go process.",
+            "swatch": {
+              "shape": "box",
+              "tone": "default",
+              "stroke": "dashed"
+            }
+          },
+          {
+            "id": "uses",
+            "label": "Relationship",
+            "description": "Arrow points from the caller or sender to the callee or receiver.",
+            "swatch": {
+              "shape": "line",
+              "tone": "default",
+              "stroke": "dashed",
+              "arrow": "forward"
+            }
+          },
+          {
+            "id": "planned",
+            "label": "Planned",
+            "description": "Dashed means planned: this is the target architecture and nothing here is built yet.",
+            "swatch": {
+              "shape": "box",
+              "tone": "muted",
+              "stroke": "dashed"
+            }
+          }
+        ]
+      },
+      "layout": {
+        "mode": "auto",
+        "direction": "TB"
+      },
+      "sourceIds": [
+        "plan",
+        "view-02-container"
+      ]
+    },
+    {
+      "id": "03-component-gateway-pipeline",
+      "kind": "component",
+      "title": "C4 Level 3 — Component: gateway ingest pipeline (internal/pipeline)",
+      "status": "planned",
+      "scopeId": "gateway",
+      "parent": {
+        "diagramId": "02-container",
+        "elementId": "gateway"
+      },
+      "groups": [
+        {
+          "id": "pkg-pipeline",
+          "label": "internal/pipeline",
+          "memberIds": [
+            "pl-parse",
+            "pl-limit",
+            "pl-hotkey",
+            "pl-route",
+            "pl-ring",
+            "pl-forward"
+          ],
+          "status": "planned"
+        }
+      ],
+      "nodes": [
+        {
+          "elementId": "producer"
+        },
+        {
+          "elementId": "pl-parse"
+        },
+        {
+          "elementId": "pl-limit",
+          "related": [
+            {
+              "diagramId": "06-component-ratelimit",
+              "label": "Inside internal/ratelimit"
+            }
+          ]
+        },
+        {
+          "elementId": "pl-hotkey",
+          "related": [
+            {
+              "diagramId": "08-component-sketch",
+              "label": "Inside internal/sketch"
+            }
+          ]
+        },
+        {
+          "elementId": "pl-route",
+          "related": [
+            {
+              "diagramId": "07-component-router",
+              "label": "Inside internal/router"
+            }
+          ]
+        },
+        {
+          "elementId": "pl-ring",
+          "related": [
+            {
+              "diagramId": "05-component-ringbuf",
+              "label": "Inside internal/ringbuf"
+            }
+          ]
+        },
+        {
+          "elementId": "pl-forward"
+        },
+        {
+          "elementId": "engine"
+        }
+      ],
+      "edges": [
+        {
+          "relationshipId": "r-producer-parse",
+          "displayNumber": 1
+        },
+        {
+          "relationshipId": "r-limit-producer",
+          "displayNumber": 2
+        },
+        {
+          "relationshipId": "r-parse-limit",
+          "displayNumber": 3
+        },
+        {
+          "relationshipId": "r-limit-hotkey",
+          "displayNumber": 4
+        },
+        {
+          "relationshipId": "r-hotkey-route",
+          "displayNumber": 5
+        },
+        {
+          "relationshipId": "r-route-ring",
+          "displayNumber": 6
+        },
+        {
+          "relationshipId": "r-ring-forward",
+          "displayNumber": 7
+        },
+        {
+          "relationshipId": "r-forward-engine",
+          "displayNumber": 8
+        },
+        {
+          "relationshipId": "r-engine-route",
+          "displayNumber": 9
+        }
+      ],
+      "legend": {
+        "title": "Diagram key",
+        "entries": [
+          {
+            "id": "person",
+            "label": "Person",
+            "description": "A user or operator of the platform.",
+            "swatch": {
+              "shape": "person",
+              "tone": "default",
+              "stroke": "dashed"
+            }
+          },
+          {
+            "id": "box",
+            "label": "Component",
+            "description": "A Go package or a named part of one, inside this process.",
+            "swatch": {
+              "shape": "box",
+              "tone": "default",
+              "stroke": "dashed"
+            }
+          },
+          {
+            "id": "external",
+            "label": "Outside this view",
+            "description": "Belongs to the other process (or runs outside this view's scope); shown for context.",
+            "swatch": {
+              "shape": "box",
+              "tone": "external",
+              "stroke": "dashed"
+            }
+          },
+          {
+            "id": "package",
+            "label": "Go package",
+            "description": "Boundary around the parts of one Go package.",
+            "swatch": {
+              "shape": "boundary",
+              "tone": "muted",
+              "stroke": "dashed"
+            }
+          },
+          {
+            "id": "uses",
+            "label": "Relationship",
+            "description": "Arrow points from the caller or sender to the callee or receiver.",
+            "swatch": {
+              "shape": "line",
+              "tone": "default",
+              "stroke": "dashed",
+              "arrow": "forward"
+            }
+          },
+          {
+            "id": "planned",
+            "label": "Planned",
+            "description": "Dashed means planned: this is the target architecture and nothing here is built yet.",
+            "swatch": {
+              "shape": "box",
+              "tone": "muted",
+              "stroke": "dashed"
+            }
+          }
+        ]
+      },
+      "layout": {
+        "mode": "auto",
+        "direction": "TB"
+      },
+      "sourceIds": [
+        "plan",
+        "view-03-component-gateway-pipeline"
+      ]
+    },
+    {
+      "id": "04-component-analytics-engine",
+      "kind": "component",
+      "title": "C4 Level 3 — Component: analytics engine, query and storage (internal/engine)",
+      "status": "planned",
+      "scopeId": "analytics",
+      "parent": {
+        "diagramId": "02-container",
+        "elementId": "analytics"
+      },
+      "groups": [
+        {
+          "id": "pkg-engine",
+          "label": "internal/engine",
+          "memberIds": [
+            "en-columns",
+            "en-index",
+            "en-groupby",
+            "en-hll",
+            "en-exec",
+            "en-merge"
+          ],
+          "status": "planned"
+        }
+      ],
+      "nodes": [
+        {
+          "elementId": "pipeline"
+        },
+        {
+          "elementId": "coordinator"
+        },
+        {
+          "elementId": "en-columns"
+        },
+        {
+          "elementId": "en-index",
+          "related": [
+            {
+              "diagramId": "09-component-index",
+              "label": "Inside internal/index"
+            }
+          ]
+        },
+        {
+          "elementId": "en-groupby",
+          "related": [
+            {
+              "diagramId": "10-component-hashmap",
+              "label": "Inside internal/hashmap"
+            }
+          ]
+        },
+        {
+          "elementId": "en-hll",
+          "related": [
+            {
+              "diagramId": "11-component-hll",
+              "label": "Inside internal/hll"
+            }
+          ]
+        },
+        {
+          "elementId": "en-exec"
+        },
+        {
+          "elementId": "en-merge"
+        }
+      ],
+      "edges": [
+        {
+          "relationshipId": "r-pipeline-columns",
+          "displayNumber": 1
+        },
+        {
+          "relationshipId": "r-pipeline-enindex",
+          "displayNumber": 2
+        },
+        {
+          "relationshipId": "r-coordinator-exec",
+          "displayNumber": 3
+        },
+        {
+          "relationshipId": "r-exec-index",
+          "displayNumber": 4
+        },
+        {
+          "relationshipId": "r-exec-columns",
+          "displayNumber": 5
+        },
+        {
+          "relationshipId": "r-exec-groupby",
+          "displayNumber": 6
+        },
+        {
+          "relationshipId": "r-exec-hll",
+          "displayNumber": 7
+        },
+        {
+          "relationshipId": "r-exec-merge",
+          "displayNumber": 8
+        },
+        {
+          "relationshipId": "r-merge-coordinator",
+          "displayNumber": 9
+        }
+      ],
+      "legend": {
+        "title": "Diagram key",
+        "entries": [
+          {
+            "id": "box",
+            "label": "Component",
+            "description": "A Go package or a named part of one, inside this process.",
+            "swatch": {
+              "shape": "box",
+              "tone": "default",
+              "stroke": "dashed"
+            }
+          },
+          {
+            "id": "external",
+            "label": "Outside this view",
+            "description": "Belongs to the other process (or runs outside this view's scope); shown for context.",
+            "swatch": {
+              "shape": "box",
+              "tone": "external",
+              "stroke": "dashed"
+            }
+          },
+          {
+            "id": "package",
+            "label": "Go package",
+            "description": "Boundary around the parts of one Go package.",
+            "swatch": {
+              "shape": "boundary",
+              "tone": "muted",
+              "stroke": "dashed"
+            }
+          },
+          {
+            "id": "uses",
+            "label": "Relationship",
+            "description": "Arrow points from the caller or sender to the callee or receiver.",
+            "swatch": {
+              "shape": "line",
+              "tone": "default",
+              "stroke": "dashed",
+              "arrow": "forward"
+            }
+          },
+          {
+            "id": "planned",
+            "label": "Planned",
+            "description": "Dashed means planned: this is the target architecture and nothing here is built yet.",
+            "swatch": {
+              "shape": "box",
+              "tone": "muted",
+              "stroke": "dashed"
+            }
+          }
+        ]
+      },
+      "layout": {
+        "mode": "auto",
+        "direction": "TB"
+      },
+      "sourceIds": [
+        "plan",
+        "view-04-component-analytics-engine"
+      ]
+    },
+    {
+      "id": "05-component-ringbuf",
+      "kind": "component",
+      "title": "C4 Level 3 — Component: lock-free ring buffers (internal/ringbuf)",
+      "status": "planned",
+      "scopeId": "gateway",
+      "parent": {
+        "diagramId": "03-component-gateway-pipeline",
+        "elementId": "pl-ring"
+      },
+      "groups": [
+        {
+          "id": "pkg-ringbuf",
+          "label": "internal/ringbuf",
+          "memberIds": [
+            "rb-spsc",
+            "rb-mpmc",
+            "rb-cursors",
+            "rb-blocking"
+          ],
+          "status": "planned"
+        }
+      ],
+      "nodes": [
+        {
+          "elementId": "rb-callers"
+        },
+        {
+          "elementId": "rb-spsc"
+        },
+        {
+          "elementId": "rb-mpmc"
+        },
+        {
+          "elementId": "rb-cursors"
+        },
+        {
+          "elementId": "rb-blocking"
+        },
+        {
+          "elementId": "pad"
+        }
+      ],
+      "edges": [
+        {
+          "relationshipId": "r-callers-spsc",
+          "displayNumber": 1
+        },
+        {
+          "relationshipId": "r-callers-mpmc",
+          "displayNumber": 2
+        },
+        {
+          "relationshipId": "r-spsc-cursors",
+          "displayNumber": 3
+        },
+        {
+          "relationshipId": "r-mpmc-cursors",
+          "displayNumber": 4
+        },
+        {
+          "relationshipId": "r-blocking-spsc",
+          "displayNumber": 5
+        },
+        {
+          "relationshipId": "r-blocking-mpmc",
+          "displayNumber": 6
+        },
+        {
+          "relationshipId": "r-cursors-pad",
+          "displayNumber": 7
+        }
+      ],
+      "legend": {
+        "title": "Diagram key",
+        "entries": [
+          {
+            "id": "box",
+            "label": "Component",
+            "description": "A Go package or a named part of one, inside this process.",
+            "swatch": {
+              "shape": "box",
+              "tone": "default",
+              "stroke": "dashed"
+            }
+          },
+          {
+            "id": "package",
+            "label": "Go package",
+            "description": "Boundary around the parts of one Go package.",
+            "swatch": {
+              "shape": "boundary",
+              "tone": "muted",
+              "stroke": "dashed"
+            }
+          },
+          {
+            "id": "uses",
+            "label": "Relationship",
+            "description": "Arrow points from the caller or sender to the callee or receiver.",
+            "swatch": {
+              "shape": "line",
+              "tone": "default",
+              "stroke": "dashed",
+              "arrow": "forward"
+            }
+          },
+          {
+            "id": "planned",
+            "label": "Planned",
+            "description": "Dashed means planned: this is the target architecture and nothing here is built yet.",
+            "swatch": {
+              "shape": "box",
+              "tone": "muted",
+              "stroke": "dashed"
+            }
+          }
+        ]
+      },
+      "layout": {
+        "mode": "auto",
+        "direction": "TB"
+      },
+      "sourceIds": [
+        "plan",
+        "view-05-component-ringbuf"
+      ]
+    },
+    {
+      "id": "06-component-ratelimit",
+      "kind": "component",
+      "title": "C4 Level 3 — Component: Token Bucket / GCRA rate limiter (internal/ratelimit)",
+      "status": "planned",
+      "scopeId": "gateway",
+      "parent": {
+        "diagramId": "03-component-gateway-pipeline",
+        "elementId": "pl-limit"
+      },
+      "groups": [
+        {
+          "id": "pkg-ratelimit",
+          "label": "internal/ratelimit",
+          "memberIds": [
+            "rl-table",
+            "rl-gcra",
+            "rl-tb"
+          ],
+          "status": "planned"
+        }
+      ],
+      "nodes": [
+        {
+          "elementId": "pl-limit"
+        },
+        {
+          "elementId": "rl-table"
+        },
+        {
+          "elementId": "rl-gcra"
+        },
+        {
+          "elementId": "rl-tb"
+        }
+      ],
+      "edges": [
+        {
+          "relationshipId": "r-pllimit-table",
+          "displayNumber": 1
+        },
+        {
+          "relationshipId": "r-table-gcra",
+          "displayNumber": 2
+        },
+        {
+          "relationshipId": "r-table-tb",
+          "displayNumber": 3
+        }
+      ],
+      "legend": {
+        "title": "Diagram key",
+        "entries": [
+          {
+            "id": "box",
+            "label": "Component",
+            "description": "A Go package or a named part of one, inside this process.",
+            "swatch": {
+              "shape": "box",
+              "tone": "default",
+              "stroke": "dashed"
+            }
+          },
+          {
+            "id": "package",
+            "label": "Go package",
+            "description": "Boundary around the parts of one Go package.",
+            "swatch": {
+              "shape": "boundary",
+              "tone": "muted",
+              "stroke": "dashed"
+            }
+          },
+          {
+            "id": "uses",
+            "label": "Relationship",
+            "description": "Arrow points from the caller or sender to the callee or receiver.",
+            "swatch": {
+              "shape": "line",
+              "tone": "default",
+              "stroke": "dashed",
+              "arrow": "forward"
+            }
+          },
+          {
+            "id": "planned",
+            "label": "Planned",
+            "description": "Dashed means planned: this is the target architecture and nothing here is built yet.",
+            "swatch": {
+              "shape": "box",
+              "tone": "muted",
+              "stroke": "dashed"
+            }
+          }
+        ]
+      },
+      "layout": {
+        "mode": "auto",
+        "direction": "TB"
+      },
+      "sourceIds": [
+        "plan",
+        "view-06-component-ratelimit"
+      ]
+    },
+    {
+      "id": "07-component-router",
+      "kind": "component",
+      "title": "C4 Level 3 — Component: consistent hashing with bounded loads (internal/router)",
+      "status": "planned",
+      "scopeId": "gateway",
+      "parent": {
+        "diagramId": "03-component-gateway-pipeline",
+        "elementId": "pl-route"
+      },
+      "groups": [
+        {
+          "id": "pkg-router",
+          "label": "internal/router",
+          "memberIds": [
+            "rt-ring",
+            "rt-snapshot",
+            "rt-load"
+          ],
+          "status": "planned"
+        }
+      ],
+      "nodes": [
+        {
+          "elementId": "pl-route"
+        },
+        {
+          "elementId": "rt-ring"
+        },
+        {
+          "elementId": "rt-snapshot"
+        },
+        {
+          "elementId": "rt-load"
+        },
+        {
+          "elementId": "xhash-gateway"
+        }
+      ],
+      "edges": [
+        {
+          "relationshipId": "r-plroute-ring",
+          "displayNumber": 1
+        },
+        {
+          "relationshipId": "r-ring-snapshot",
+          "displayNumber": 2
+        },
+        {
+          "relationshipId": "r-ring-load",
+          "displayNumber": 3
+        },
+        {
+          "relationshipId": "r-snapshot-xhash",
+          "displayNumber": 4
+        }
+      ],
+      "legend": {
+        "title": "Diagram key",
+        "entries": [
+          {
+            "id": "box",
+            "label": "Component",
+            "description": "A Go package or a named part of one, inside this process.",
+            "swatch": {
+              "shape": "box",
+              "tone": "default",
+              "stroke": "dashed"
+            }
+          },
+          {
+            "id": "package",
+            "label": "Go package",
+            "description": "Boundary around the parts of one Go package.",
+            "swatch": {
+              "shape": "boundary",
+              "tone": "muted",
+              "stroke": "dashed"
+            }
+          },
+          {
+            "id": "uses",
+            "label": "Relationship",
+            "description": "Arrow points from the caller or sender to the callee or receiver.",
+            "swatch": {
+              "shape": "line",
+              "tone": "default",
+              "stroke": "dashed",
+              "arrow": "forward"
+            }
+          },
+          {
+            "id": "planned",
+            "label": "Planned",
+            "description": "Dashed means planned: this is the target architecture and nothing here is built yet.",
+            "swatch": {
+              "shape": "box",
+              "tone": "muted",
+              "stroke": "dashed"
+            }
+          }
+        ]
+      },
+      "layout": {
+        "mode": "auto",
+        "direction": "TB"
+      },
+      "sourceIds": [
+        "plan",
+        "view-07-component-router"
+      ]
+    },
+    {
+      "id": "08-component-sketch",
+      "kind": "component",
+      "title": "C4 Level 3 — Component: Count-Min Sketch hot-key detection (internal/sketch)",
+      "status": "planned",
+      "scopeId": "gateway",
+      "parent": {
+        "diagramId": "03-component-gateway-pipeline",
+        "elementId": "pl-hotkey"
+      },
+      "groups": [
+        {
+          "id": "pkg-sketch",
+          "label": "internal/sketch",
+          "memberIds": [
+            "sk-countmin",
+            "sk-topk"
+          ],
+          "status": "planned"
+        }
+      ],
+      "nodes": [
+        {
+          "elementId": "pl-hotkey"
+        },
+        {
+          "elementId": "sk-countmin"
+        },
+        {
+          "elementId": "sk-topk"
+        },
+        {
+          "elementId": "xhash-gateway"
+        }
+      ],
+      "edges": [
+        {
+          "relationshipId": "r-plhotkey-countmin",
+          "displayNumber": 1
+        },
+        {
+          "relationshipId": "r-plhotkey-topk",
+          "displayNumber": 2
+        },
+        {
+          "relationshipId": "r-topk-countmin",
+          "displayNumber": 3
+        },
+        {
+          "relationshipId": "r-countmin-xhash",
+          "displayNumber": 4
+        }
+      ],
+      "legend": {
+        "title": "Diagram key",
+        "entries": [
+          {
+            "id": "box",
+            "label": "Component",
+            "description": "A Go package or a named part of one, inside this process.",
+            "swatch": {
+              "shape": "box",
+              "tone": "default",
+              "stroke": "dashed"
+            }
+          },
+          {
+            "id": "package",
+            "label": "Go package",
+            "description": "Boundary around the parts of one Go package.",
+            "swatch": {
+              "shape": "boundary",
+              "tone": "muted",
+              "stroke": "dashed"
+            }
+          },
+          {
+            "id": "uses",
+            "label": "Relationship",
+            "description": "Arrow points from the caller or sender to the callee or receiver.",
+            "swatch": {
+              "shape": "line",
+              "tone": "default",
+              "stroke": "dashed",
+              "arrow": "forward"
+            }
+          },
+          {
+            "id": "planned",
+            "label": "Planned",
+            "description": "Dashed means planned: this is the target architecture and nothing here is built yet.",
+            "swatch": {
+              "shape": "box",
+              "tone": "muted",
+              "stroke": "dashed"
+            }
+          }
+        ]
+      },
+      "layout": {
+        "mode": "auto",
+        "direction": "TB"
+      },
+      "sourceIds": [
+        "plan",
+        "view-08-component-sketch"
+      ]
+    },
+    {
+      "id": "09-component-index",
+      "kind": "component",
+      "title": "C4 Level 3 — Component: inverted index + Roaring bitmaps (internal/index)",
+      "status": "planned",
+      "scopeId": "analytics",
+      "parent": {
+        "diagramId": "04-component-analytics-engine",
+        "elementId": "en-index"
+      },
+      "groups": [
+        {
+          "id": "pkg-index",
+          "label": "internal/index",
+          "memberIds": [
+            "ix-inverted",
+            "ix-bitmap",
+            "ix-array",
+            "ix-bitset"
+          ],
+          "status": "planned"
+        }
+      ],
+      "nodes": [
+        {
+          "elementId": "en-index"
+        },
+        {
+          "elementId": "ix-inverted"
+        },
+        {
+          "elementId": "ix-bitmap"
+        },
+        {
+          "elementId": "ix-array"
+        },
+        {
+          "elementId": "ix-bitset"
+        }
+      ],
+      "edges": [
+        {
+          "relationshipId": "r-enindex-inverted",
+          "displayNumber": 1
+        },
+        {
+          "relationshipId": "r-inverted-bitmap",
+          "displayNumber": 2
+        },
+        {
+          "relationshipId": "r-bitmap-array",
+          "displayNumber": 3
+        },
+        {
+          "relationshipId": "r-bitmap-bitset",
+          "displayNumber": 4
+        },
+        {
+          "relationshipId": "r-array-bitset",
+          "displayNumber": 5
+        }
+      ],
+      "legend": {
+        "title": "Diagram key",
+        "entries": [
+          {
+            "id": "box",
+            "label": "Component",
+            "description": "A Go package or a named part of one, inside this process.",
+            "swatch": {
+              "shape": "box",
+              "tone": "default",
+              "stroke": "dashed"
+            }
+          },
+          {
+            "id": "package",
+            "label": "Go package",
+            "description": "Boundary around the parts of one Go package.",
+            "swatch": {
+              "shape": "boundary",
+              "tone": "muted",
+              "stroke": "dashed"
+            }
+          },
+          {
+            "id": "uses",
+            "label": "Relationship",
+            "description": "Arrow points from the caller or sender to the callee or receiver.",
+            "swatch": {
+              "shape": "line",
+              "tone": "default",
+              "stroke": "dashed",
+              "arrow": "forward"
+            }
+          },
+          {
+            "id": "planned",
+            "label": "Planned",
+            "description": "Dashed means planned: this is the target architecture and nothing here is built yet.",
+            "swatch": {
+              "shape": "box",
+              "tone": "muted",
+              "stroke": "dashed"
+            }
+          }
+        ]
+      },
+      "layout": {
+        "mode": "auto",
+        "direction": "TB"
+      },
+      "sourceIds": [
+        "plan",
+        "view-09-component-index"
+      ]
+    },
+    {
+      "id": "10-component-hashmap",
+      "kind": "component",
+      "title": "C4 Level 3 — Component: SwissTable hash map (internal/hashmap)",
+      "status": "planned",
+      "scopeId": "analytics",
+      "parent": {
+        "diagramId": "04-component-analytics-engine",
+        "elementId": "en-groupby"
+      },
+      "groups": [
+        {
+          "id": "pkg-hashmap",
+          "label": "internal/hashmap",
+          "memberIds": [
+            "hm-harness",
+            "hm-map",
+            "hm-hasher",
+            "hm-swar",
+            "hm-ctrl",
+            "hm-slots"
+          ],
+          "status": "planned"
+        }
+      ],
+      "nodes": [
+        {
+          "elementId": "en-groupby"
+        },
+        {
+          "elementId": "hm-harness"
+        },
+        {
+          "elementId": "hm-map"
+        },
+        {
+          "elementId": "hm-hasher"
+        },
+        {
+          "elementId": "hm-swar"
+        },
+        {
+          "elementId": "hm-ctrl"
+        },
+        {
+          "elementId": "hm-slots"
+        }
+      ],
+      "edges": [
+        {
+          "relationshipId": "r-groupby-map",
+          "displayNumber": 1
+        },
+        {
+          "relationshipId": "r-harness-map",
+          "displayNumber": 2
+        },
+        {
+          "relationshipId": "r-map-hasher",
+          "displayNumber": 3
+        },
+        {
+          "relationshipId": "r-map-swar",
+          "displayNumber": 4
+        },
+        {
+          "relationshipId": "r-swar-ctrl",
+          "displayNumber": 5
+        },
+        {
+          "relationshipId": "r-map-slots",
+          "displayNumber": 6
+        }
+      ],
+      "legend": {
+        "title": "Diagram key",
+        "entries": [
+          {
+            "id": "box",
+            "label": "Component",
+            "description": "A Go package or a named part of one, inside this process.",
+            "swatch": {
+              "shape": "box",
+              "tone": "default",
+              "stroke": "dashed"
+            }
+          },
+          {
+            "id": "package",
+            "label": "Go package",
+            "description": "Boundary around the parts of one Go package.",
+            "swatch": {
+              "shape": "boundary",
+              "tone": "muted",
+              "stroke": "dashed"
+            }
+          },
+          {
+            "id": "uses",
+            "label": "Relationship",
+            "description": "Arrow points from the caller or sender to the callee or receiver.",
+            "swatch": {
+              "shape": "line",
+              "tone": "default",
+              "stroke": "dashed",
+              "arrow": "forward"
+            }
+          },
+          {
+            "id": "planned",
+            "label": "Planned",
+            "description": "Dashed means planned: this is the target architecture and nothing here is built yet.",
+            "swatch": {
+              "shape": "box",
+              "tone": "muted",
+              "stroke": "dashed"
+            }
+          }
+        ]
+      },
+      "layout": {
+        "mode": "auto",
+        "direction": "TB"
+      },
+      "sourceIds": [
+        "plan",
+        "view-10-component-hashmap"
+      ]
+    },
+    {
+      "id": "11-component-hll",
+      "kind": "component",
+      "title": "C4 Level 3 — Component: HyperLogLog (internal/hll)",
+      "status": "planned",
+      "scopeId": "analytics",
+      "parent": {
+        "diagramId": "04-component-analytics-engine",
+        "elementId": "en-hll"
+      },
+      "groups": [
+        {
+          "id": "pkg-hll",
+          "label": "internal/hll",
+          "memberIds": [
+            "hl-sketch",
+            "hl-estimate",
+            "hl-codec"
+          ],
+          "status": "planned"
+        }
+      ],
+      "nodes": [
+        {
+          "elementId": "en-hll"
+        },
+        {
+          "elementId": "en-merge"
+        },
+        {
+          "elementId": "hl-sketch"
+        },
+        {
+          "elementId": "hl-estimate"
+        },
+        {
+          "elementId": "hl-codec"
+        },
+        {
+          "elementId": "xhash-analytics"
+        }
+      ],
+      "edges": [
+        {
+          "relationshipId": "r-enhll-sketch",
+          "displayNumber": 1
+        },
+        {
+          "relationshipId": "r-merge-sketch",
+          "displayNumber": 2
+        },
+        {
+          "relationshipId": "r-sketch-estimate",
+          "displayNumber": 3
+        },
+        {
+          "relationshipId": "r-sketch-codec",
+          "displayNumber": 4
+        },
+        {
+          "relationshipId": "r-sketch-xhash",
+          "displayNumber": 5
+        }
+      ],
+      "legend": {
+        "title": "Diagram key",
+        "entries": [
+          {
+            "id": "box",
+            "label": "Component",
+            "description": "A Go package or a named part of one, inside this process.",
+            "swatch": {
+              "shape": "box",
+              "tone": "default",
+              "stroke": "dashed"
+            }
+          },
+          {
+            "id": "external",
+            "label": "Outside this view",
+            "description": "Belongs to the other process (or runs outside this view's scope); shown for context.",
+            "swatch": {
+              "shape": "box",
+              "tone": "external",
+              "stroke": "dashed"
+            }
+          },
+          {
+            "id": "package",
+            "label": "Go package",
+            "description": "Boundary around the parts of one Go package.",
+            "swatch": {
+              "shape": "boundary",
+              "tone": "muted",
+              "stroke": "dashed"
+            }
+          },
+          {
+            "id": "uses",
+            "label": "Relationship",
+            "description": "Arrow points from the caller or sender to the callee or receiver.",
+            "swatch": {
+              "shape": "line",
+              "tone": "default",
+              "stroke": "dashed",
+              "arrow": "forward"
+            }
+          },
+          {
+            "id": "planned",
+            "label": "Planned",
+            "description": "Dashed means planned: this is the target architecture and nothing here is built yet.",
+            "swatch": {
+              "shape": "box",
+              "tone": "muted",
+              "stroke": "dashed"
+            }
+          }
+        ]
+      },
+      "layout": {
+        "mode": "auto",
+        "direction": "TB"
+      },
+      "sourceIds": [
+        "plan",
+        "view-11-component-hll"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,7 @@
+%% draw-visual: -x 4 -y 1 -p 0
+graph TD
+  caller[Engine: tag index] --> inverted[Inverted: term to bitmap]
+  inverted --> bitmap[Bitmap: 16-bit chunks]
+  bitmap -->|sparse| array[Array container]
+  bitmap -->|dense| bitset[Bitset container]
+  array -->|promote/demote| bitset

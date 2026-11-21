@@ -1,0 +1,6 @@
+%% draw-visual: -x 4 -y 1 -p 0
+graph TD
+  caller[Pipeline: route] -->|Assign/Release| ring[Ring]
+  ring -->|lookup/swap| snapshot[Immutable vnode snapshot]
+  ring -->|under cap| load[Per-shard load counters]
+  snapshot -->|hash| xhash[internal/xhash]

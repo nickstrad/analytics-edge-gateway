@@ -1,0 +1,6 @@
+%% draw-visual: -x 4 -y 1 -p 0
+graph LR
+  producers[Producers] -->|enqueue| spsc[SPSC ring]
+  producers -->|enqueue| mpmc[MPMC ring]
+  spsc -->|dequeue| consumers[Consumers]
+  mpmc -->|dequeue| consumers

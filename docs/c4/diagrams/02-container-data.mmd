@@ -1,0 +1,6 @@
+%% draw-visual: -x 4 -y 1 -p 0
+graph TD
+  producer[Event producers] -->|HTTP ingest| pipeline[gateway: internal/pipeline]
+  pipeline -->|TCP batches| engine[analytics xN: internal/engine]
+  consumer[Query consumers] -->|HTTP/JSON| coordinator[gateway: query coordinator]
+  coordinator -->|fan-out/merge| engine

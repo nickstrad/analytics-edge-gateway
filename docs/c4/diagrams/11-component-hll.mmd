@@ -1,0 +1,7 @@
+%% draw-visual: -x 4 -y 1 -p 0
+graph TD
+  shard[Engine: per-shard HLL] -->|Add| sketch[Sketch: 16384 registers]
+  merge[Engine: coordinator merge] -->|Merge| sketch
+  sketch --> estimate[Estimate]
+  sketch --> codec[Register codec]
+  sketch -->|hash| xhash[internal/xhash]

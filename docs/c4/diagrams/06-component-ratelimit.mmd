@@ -1,0 +1,5 @@
+%% draw-visual: -x 4 -y 1 -p 0
+graph TD
+  caller[Pipeline: GCRA limit] -->|Allow| table[Per-tenant limiter table]
+  table -->|default| gcra[GCRA: int64 TAT]
+  table --> tb[TokenBucket: tokens, last]

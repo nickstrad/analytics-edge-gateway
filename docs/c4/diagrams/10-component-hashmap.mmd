@@ -1,0 +1,8 @@
+%% draw-visual: -x 4 -y 1 -p 0
+graph TD
+  caller[Engine: GROUP BY] -->|Put/Get| map[Map K,V]
+  harness[Aggregation harness] --> map
+  map -->|probe| swar[SWAR group match]
+  map -->|H1/H2| hasher[Explicit hasher]
+  map -->|key/value| slots[Slot array]
+  swar -->|match| ctrl[Control bytes]
