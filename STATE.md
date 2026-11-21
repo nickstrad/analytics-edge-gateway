@@ -11,8 +11,10 @@ Roaring Bitmaps, SwissTable-style hash map, and HyperLogLog —
 designed testing-first: DST, property tests, native fuzzing,
 allocation gates, race validation, and E2E tests guide the build.
 
-Status: Phase 1 COMPLETE — PLAN.md written and pushed 2026-11-21; waiting
-for Nick's sign-off (Twin relays his ruling in a brief file).
+Status: Phase 1 COMPLETE — PLAN.md written and pushed 2026-11-21; initial
+C4 diagram set designed with c4-sdk, validated, rendered and landed at
+a1b2948 (2026-11-21). Waiting for Nick's sign-off on the plan AND buy-in on
+the diagrams (Twin relays his ruling in a brief file).
 HARD GATE: no product building, no Opus dispatch, until that ruling.
 
 Seats (Nick, 2026-11-20, this project only): Fable orchestrates; Opus
@@ -34,9 +36,21 @@ Done:
   determinism; cache-line padding layout; SWAR group matching), all
   indexed in agent_work/INDEX.md. Completion marker:
   /root/runs/gateway-plan-done.txt.
+- 2026-11-21: Fable designed the initial C4 set from PLAN.md's target
+  architecture with c4-sdk and landed it at a1b2948 in docs/c4/: 11
+  diagrams (01 System Context, 02 Container, 03-11 Component: gateway
+  pipeline, analytics engine, ringbuf, ratelimit, router, sketch, index,
+  hashmap, hll), each labelled "TARGET architecture — designed
+  2026-11-21, awaiting Nick's buy-in". docs/c4/model.json is a c4-sdk
+  schemaVersion-1 bundle: decodeArchitecture (c4-sdk@0.1.0) accepts it
+  with 0 diagnostics (60 elements, 76 relationships, 11 diagrams). The
+  15 draw-visual Unicode embeds pass render.py --check at 80 columns;
+  the 11 Mermaid blocks render with mermaid-cli. Index, checks to rerun
+  and the model-to-c4-sdk mapping: docs/c4/README.md. Completion marker:
+  /root/runs/gateway-c4-done.txt.
 
 In progress:
-- Nothing. No agents or background runs are alive for this project.
+- No agents or background runs are alive for this project.
 
 Next steps (only after Nick's ruling arrives):
 1. Apply Nick's edits/answers to PLAN.md section 9 (open questions).
@@ -51,11 +65,16 @@ Next steps (only after Nick's ruling arrives):
 Open decisions / blockers:
 - C4 RULING (Nick, 2026-11-21, via Twin): this project keeps a C4
   diagrams section on its GitHub Pages site, up to date per landing,
-  designed with Nick's c4-ask tool; designing the initial diagrams is
-  part of kickoff and they go to Nick for buy-in together with the plan
-  sign-off. Full ruling: /root/briefs/gateway-c4-ruling-2026-11-21.md. A bounded diagram-design run
-  follows this entry; diagrams land in docs/c4/ labelled TARGET
-  architecture, awaiting Nick's buy-in.
+  designed with Nick's c4-sdk (he first said "c4-ask" and clarified
+  2026-11-21 that he meant c4-sdk; /root/Software/c4-sdk, npm
+  c4-sdk@0.1.0); designing the initial diagrams is part of kickoff and
+  they go to Nick for buy-in together with the plan sign-off. Full
+  ruling: /root/briefs/gateway-c4-ruling-2026-11-21.md. The initial set
+  is in docs/c4/ (index: docs/c4/README.md), labelled TARGET
+  architecture. Owner Nick: buy-in on the diagrams.
+- Pages C4 section: stock Jekyll does not render Mermaid blocks; the
+  Chunk 0 Pages workflow needs the c4-sdk viewer over docs/c4/model.json
+  (or a Mermaid step).
 - BOOK RULING (Nick, 2026-11-20, via Twin): in addition to the per-chunk
   Neon write-ups, Neon assembles a concise Leanpub-style BOOK as the
   project's canonical learning artifact - per-chunk write-ups become book
